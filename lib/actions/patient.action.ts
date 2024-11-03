@@ -1,21 +1,35 @@
-import { ID, Query } from 'node-appwrite';
-import { users } from '../appwrite.config';
+import { ID, Query } from "node-appwrite";
+import { users } from "../appwrite.config";
+
+export interface CreateUserParams {
+  email: string;
+  phone?: string;
+  name?: string;
+}
 
 export const createUser = async (user: CreateUserParams) => {
   try {
-    const newUser = await users.create
-    (ID.unique(),
-     user.email,
-     user.phone,
-     undefined,
-     user.name)
-    // Add logic for creating a user if needed
+    // Creating a new user
+    const newUser = await users.create(
+      ID.unique(),
+      user.email,
+      undefined, // Password, if needed, can be set here
+      user.name,
+      user.phone
+    );
+    return newUser;
   } catch (error: any) {
-    if (error && error?.code === 409) {
-      const documents = await users.list([
-        Query.equal('email', user.email)
+    if (error?.code === 409) {
+      // User already exists, retrieve the existing user by email
+      const existingUsers = await users.list([
+        Query.equal("email", user.email),
       ]);
-      return documents.users[0]; // Assuming 'users' is the array of user documents
+
+      if (existingUsers.documents && existingUsers.documents.length > 0) {
+        return existingUsers.documents[0]; // Assuming 'documents' contains user data
+      }
+    } else {
+      throw error; // Re-throw unexpected errors
     }
   }
 };
